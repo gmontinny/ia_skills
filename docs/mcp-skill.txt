@@ -1,0 +1,89 @@
+Servidor MCP para shills com versionamento no GitLab usando arquitetura OKF do Google
+Projeto de referência C:\projeto-llm\llm_skills
+
+A stack recomendada para construir esse servidor é:
+
+FastAPI: Para expor os endpoints HTTP que receberão as requisições JSON-RPC do protocolo MCP.
+
+MCP Python SDK: Para definir as ferramentas (Tools), recursos (Resources) e prompts de forma padrão, o SDK cuida da comunicação com o FastAPI.
+
+Vantagens da abordagem remota
+Atualizações Instantâneas: Você altera a lógica no servidor, faz o deploy e as IDEs (na próxima conexão) já consomem a versão nova.
+
+Sem Overhead Local: Não é necessário instalar dependências Python ou binários nas máquinas dos desenvolvedores; a IDE só precisa de conectividade de rede.
+
+Centralização: Facilita a gestão de logs, segurança (tokens de acesso) e monitoramento do uso das Skills.
+
+Para o transporte HTTP remoto, você deve se atentar ao versionamento do protocolo. O MCP evolui e as IDEs podem implementar versões diferentes. Por isso, é bom seguir as especificações mais recentes do MCP SDK para garantir compatibilidade com clientes como o Antigravity e o PyCharm
+
+A ideia é que o seu servidor FastAPI (que expõe as Skills via MCP) seja o artefato final. As "skills" são o código-fonte que define as ferramentas. O fluxo seria:
+
+Desenvolvimento: Você cria ou modifica uma Skill no repositório GitLab.
+
+Integração Contínua (CI): Um push ou Merge Request dispara um pipeline que roda testes de qualidade e conformidade.
+
+Validação de Qualidade: O pipeline verifica se as Skills são válidas como ferramentas MCP e se o código Python subjacente está correto.
+
+Deploy Contínuo (CD): Se tudo passar, o pipeline faz o deploy da nova versão do servidor FastAPI.
+
+Como Configurar o .gitlab-ci.yml para Medir Qualidade
+Você pode (e deve) usar o .gitlab-ci.yml para rodar uma bateria de testes específicos para MCP, além dos testes tradicionais de Python. Aqui estão as camadas de validação que você pode implementar:
+
+1. Testes de Unidade e Cobertura (Python/FastAPI)
+Isso garante que a lógica interna da sua aplicação está correta. Use pytest e pytest-cov para medir a cobertura de código. Um exemplo de job no .gitlab-ci.yml:
+
+test:python:
+  stage: test
+  image: python:3.11
+  script:
+    - pip install -r requirements.txt
+    - pip install pytest pytest-cov httpx
+    - pytest --cov=src --cov-report=term-missing tests/
+  artifacts:
+    paths:
+      - .coverage
+      
+ Ponto de Atenção: Certifique-se de que o pyproject.toml ou pytest.ini está configurado corretamente com testpaths para que o pytest encontre os testes .
+
+2. Testes de Fumaça (Smoke Test) do MCP
+Isso é crucial. Verifica se o seu servidor inicia, responde ao handshake do MCP e lista as ferramentas corretamente. Existem ferramentas CLI dedicadas a isso, como o mcp-smoke-test . Você pode adicionar um job que sobe o servidor e roda esse teste.
+
+test:mcp-smoke:
+  stage: test
+  script:
+    - # Script para iniciar o servidor FastAPI em background
+    - # Rodar a ferramenta de smoke test apontando para a URL do servidor
+    - node bin/mcp-smoke-test.js --url http://localhost:8000/mcp
+    
+    
+3. Testes de Conformidade com o Protocolo MCP (Opcional, mas recomendado)
+Para garantir que seu servidor não "quebre" quando as IDEs (clientes) atualizarem, você pode rodar um Conformance Test Harness. Existem pacotes como o mcp-protocol-conformance que validam o envelope JSON-RPC, o handshake de versão do protocolo, os schemas das ferramentas e até o fluxo OAuth . Isso garante que a sua Skill está "falando" a língua correta do MCP.
+
+test:mcp-conformance:
+  stage: test
+  script:
+    - npm install -g mcp-protocol-conformance
+    - mcp-conformance run --target http --url http://localhost:8000/mcp --spec 2025-11-25 --suite all
+    
+4. Análise Estática e Estilo de Código
+Ferramentas como ruff e mypy ajudam a manter a qualidade do código Python que você está disponibilizando . Um job simples:
+
+lint:
+  stage: test
+  script:
+    - pip install ruff mypy
+    - ruff check src/
+    - mypy src/
+    
+Resumo
+Você pode configurar o .gitlab-ci.yml para atuar como um gatekeeper de qualidade para suas Skills. A esteira ideal teria:
+
+Lint + Type Check: Para garantir código Python limpo.
+
+Pytest: Para a lógica de negócio e cobertura.
+
+Smoke Test MCP: Para garantir que o servidor "sobe" e expõe as ferramentas.
+
+Conformance Test: Para garantir a compatibilidade com o protocolo.
+
+Se todas essas etapas passarem, o deploy da nova versão do servidor FastAPI é feito automaticamente, e as IDEs (PyCharm, Antigravity) passam a consumir as Skills atualizadas sem que ninguém precise instalar nada localmente.    

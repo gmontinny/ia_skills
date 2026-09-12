@@ -1,0 +1,68 @@
+# Exemplo de pipeline usando o runner configurado
+# Imagens Docker são puxadas automaticamente pelo DinD
+
+stages:
+  - build
+  - test
+
+# ─── Java ─────────────────────────────────────────────────
+java-build:
+  stage: build
+  image: maven:3.9-eclipse-temurin-21
+  tags: [docker, java]
+  script:
+    - mvn -B package --no-transfer-progress
+  artifacts:
+    paths: [target/*.jar]
+
+# ─── Python ───────────────────────────────────────────────
+python-test:
+  stage: test
+  image: python:3.12-slim
+  tags: [docker, python]
+  script:
+    - pip install -r requirements.txt
+    - pytest --tb=short
+
+# ─── Node.js ──────────────────────────────────────────────
+node-build:
+  stage: build
+  image: node:20-alpine
+  tags: [docker, nodejs]
+  script:
+    - npm ci
+    - npm run build
+
+# ─── Vue.js ───────────────────────────────────────────────
+vuejs-build:
+  stage: build
+  image: node:20-alpine
+  tags: [docker, vuejs]
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths: [dist/]
+
+# ─── React ────────────────────────────────────────────────
+react-build:
+  stage: build
+  image: node:20-alpine
+  tags: [docker, react]
+  script:
+    - npm ci
+    - npm run build
+  artifacts:
+    paths: [build/]
+
+# ─── Docker build (DinD) ──────────────────────────────────
+docker-build:
+  stage: build
+  image: docker:24-cli
+  tags: [docker, dind]
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_TLS_CERTDIR: /certs
+  script:
+    - docker build -t myapp:$CI_COMMIT_SHORT_SHA .

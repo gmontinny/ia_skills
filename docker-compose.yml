@@ -1,0 +1,114 @@
+services:
+
+  # ─── GitLab CE ────────────────────────────────────────────────────────────────
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab
+    restart: always
+    hostname: 192.168.15.4
+    ports:
+      - "80:80"
+      - "443:443"
+      - "${SSH_PORT:-2222}:22"
+    volumes:
+      - ./gitlab-config/gitlab.rb:/etc/gitlab/gitlab.rb
+      - gitlab_config:/etc/gitlab
+      - gitlab_logs:/var/log/gitlab
+      - gitlab_data:/var/opt/gitlab
+    shm_size: '256m'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/users/sign_in"]
+      interval: 60s
+      timeout: 10s
+      retries: 10
+      start_period: 600s
+    networks:
+      gitlab_net:
+        aliases:
+          - gitlab
+
+  # ─── Setup: cria PAT via gitlab-rails e salva no volume compartilhado ─────────
+  gitlab-setup:
+    image: docker:24-cli
+    container_name: gitlab-setup
+    restart: "no"
+    depends_on:
+      gitlab:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "/scripts/setup-gitlab.sh"]
+    volumes:
+      - shared_config:/shared-config
+      - ./scripts/setup-gitlab.sh:/scripts/setup-gitlab.sh:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - gitlab_net
+
+  # ─── Init Container: configura runner token via API ──────────────────────────
+  gitlab-init:
+    build:
+      context: .
+      dockerfile: gitlab-init/Dockerfile
+    container_name: gitlab-init
+    restart: "no"
+    depends_on:
+      gitlab-setup:
+        condition: service_completed_successfully
+    environment:
+      GITLAB_INTERNAL_URL: http://gitlab
+    volumes:
+      - shared_config:/shared-config
+    networks:
+      - gitlab_net
+
+  # ─── Docker-in-Docker daemon ──────────────────────────────────────────────────
+  dind:
+    image: docker:24-dind
+    container_name: gitlab-dind
+    restart: always
+    privileged: true
+    command: ["dockerd", "--host=tcp://0.0.0.0:2375", "--tls=false"]
+    environment:
+      DOCKER_TLS_CERTDIR: ""
+    volumes:
+      - dind_storage:/var/lib/docker
+    networks:
+      - gitlab_net
+
+  # ─── GitLab Runner (auto-registro) ───────────────────────────────────────────
+  gitlab-runner:
+    build:
+      context: .
+      dockerfile: runner/Dockerfile
+    container_name: gitlab-runner
+    restart: always
+    depends_on:
+      dind:
+        condition: service_started
+      gitlab-init:
+        condition: service_completed_successfully
+    privileged: true
+    environment:
+      DOCKER_HOST: tcp://dind:2375
+      DOCKER_TLS_CERTDIR: ""
+      RUNNER_NAME: ${RUNNER_NAME:-docker-dind-runner}
+      RUNNER_TAGS: ${RUNNER_TAGS:-docker,java,python,nodejs,vuejs,react,dind}
+      RUNNER_CONCURRENT: ${RUNNER_CONCURRENT:-4}
+      GITLAB_INTERNAL_URL: http://gitlab
+    volumes:
+      - gitlab_runner_config:/etc/gitlab-runner
+      - shared_config:/shared-config:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - gitlab_net
+
+volumes:
+  gitlab_config:
+  gitlab_logs:
+  gitlab_data:
+  gitlab_runner_config:
+  shared_config:
+  dind_storage:
+
+networks:
+  gitlab_net:
+    driver: bridge
