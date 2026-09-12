@@ -68,21 +68,22 @@ git push -u origin main
 
 ## Estrutura do repositório ia-skill
 
-O repositório `ia-skill` segue o padrão **OKF (Open Knowledge Format)**:
+O repositório `ia-skill` fica dentro do projeto principal em `ia-skill/` e segue o padrão **OKF (Open Knowledge Format)**:
 
 ```
-ia-skill/
-├── knowledge.yaml          # Descritor do bundle de skills
-├── scripts/
-│   └── validate_okf.py     # Script de validação OKF
-├── .gitlab-ci.yml          # Pipeline de validação automática
-└── skills/
-    ├── lgpd-brasil/
-    │   ├── SKILL.md        # Conteúdo e metadados da skill
-    │   └── reference.md    # Material de referência (opcional)
-    └── mantine-ui/
-        ├── SKILL.md
-        └── reference.md
+ia_skills/
+└── ia-skill/                   # ← repositório de skills
+    ├── knowledge.yaml          # Descritor do bundle de skills
+    ├── .gitlab-ci.yml          # Pipeline de validação automática
+    ├── scripts/
+    │   └── validate_okf.py     # Script de validação OKF
+    └── skills/
+        ├── lgpd-brasil/
+        │   ├── SKILL.md        # Conteúdo e metadados da skill
+        │   └── reference.md    # Material de referência (opcional)
+        └── mantine-ui/
+            ├── SKILL.md
+            └── reference.md
 ```
 
 ---
@@ -92,6 +93,7 @@ ia-skill/
 ### 1. Crie a pasta da skill
 
 ```bash
+cd ia_skills/ia-skill
 mkdir skills/minha-skill
 ```
 
@@ -166,7 +168,7 @@ skills:
 Antes de enviar, valide as skills localmente:
 
 ```bash
-cd ia-skill
+cd ia_skills/ia-skill
 python scripts/validate_okf.py
 ```
 
@@ -188,7 +190,7 @@ Se houver erros, corrija antes de fazer o push.
 ## Enviando ao GitLab
 
 ```bash
-cd ia-skill
+cd ia_skills/ia-skill
 git add .
 git commit -m "feat: adiciona skill minha-skill"
 git push origin main

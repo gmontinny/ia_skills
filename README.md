@@ -73,8 +73,22 @@ bash start.sh --reset   # apagar tudo e subir do zero
 │   ├── setup-gitlab.sh           # Cria PAT via docker exec
 │   ├── init-gitlab.sh            # Configura settings via API REST
 │   └── register-runner.sh        # Registra runner e inicia processo
+├── ia-skill/                     # Repositório de skills OKF (versionado no GitLab)
+│   ├── knowledge.yaml            # Descritor do bundle
+│   ├── .gitlab-ci.yml            # Pipeline de validação OKF
+│   ├── scripts/validate_okf.py   # Validador local
+│   └── skills/                   # Uma pasta por skill
+│       ├── lgpd-brasil/SKILL.md
+│       └── mantine-ui/SKILL.md
+├── mcp-server/                   # Servidor MCP (FastAPI + Python)
+│   ├── src/                      # Código fonte
+│   ├── .env                      # Configuração (PAT, URL GitLab)
+│   ├── main.py                   # Entrypoint FastAPI
+│   └── requirements.txt
 └── docs/
-    └── stack-reference.md        # Referência técnica completa
+    ├── stack-reference.md        # Referência técnica da infra
+    ├── ide-mcp-setup.md          # Configuração das IDEs
+    └── gitlab-push-guide.md      # Como enviar projetos e skills
 ```
 
 ## Serviços
