@@ -8,6 +8,8 @@ Stack completa com GitLab CE, runner Docker-in-Docker e auto-configuração via 
 
 🚀 **Enviar projetos e skills ao GitLab**: [docs/gitlab-push-guide.md](docs/gitlab-push-guide.md)
 
+⚡ **Rodar o servidor MCP**: [docs/mcp-server-guide.md](docs/mcp-server-guide.md)
+
 ---
 
 ## Início rápido
@@ -88,7 +90,8 @@ bash start.sh --reset   # apagar tudo e subir do zero
 └── docs/
     ├── stack-reference.md        # Referência técnica da infra
     ├── ide-mcp-setup.md          # Configuração das IDEs
-    └── gitlab-push-guide.md      # Como enviar projetos e skills
+    ├── gitlab-push-guide.md      # Como enviar projetos e skills
+    └── mcp-server-guide.md       # Como rodar o servidor MCP
 ```
 
 ## Serviços
