@@ -4,7 +4,9 @@ Stack completa com GitLab CE, runner Docker-in-Docker e auto-configuração via 
 
 📖 **Documentação completa**: [docs/stack-reference.md](docs/stack-reference.md)
 
-🔌 **Configurar IDEs (VS Code, JetBrains, Cursor)**: [docs/ide-mcp-setup.md](docs/ide-mcp-setup.md)
+🔌 **Configurar IDEs (VS Code, JetBrains, Cursor, Antigravity)**: [docs/ide-mcp-setup.md](docs/ide-mcp-setup.md)
+
+🚀 **Enviar projetos e skills ao GitLab**: [docs/gitlab-push-guide.md](docs/gitlab-push-guide.md)
 
 ---
 
